@@ -25,80 +25,80 @@ int main() {
     vector<char> buffer(BUFFER_SIZE);
     string message = "Hello";
 
-    // ¿¿ ¿¿ ¿¿
+    // ì„œë²„ ì†Œì¼“ ìƒì„±
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket == -1) {
-        logError("¿¿ ¿¿ ¿¿ ¿¿");
+        logError("ì„œë²„ ì†Œì¼“ ìƒì„± ì‹¤íŒ¨");
         return -1;
     }
 
-    // ¿¿ ¿¿ ¿¿
+    // ì„œë²„ ì£¼ì†Œ ì„¤ì •
     serverAddr.sin_family = AF_INET;
-    serverAddr.sin_addr.s_addr = INADDR_ANY; // ¿¿ IP ¿¿¿ ¿¿
+    serverAddr.sin_addr.s_addr = INADDR_ANY; // ëª¨ë“  IP ì£¼ì†Œë¥¼ ìˆ˜ë½
     serverAddr.sin_port = htons(12345);
 
-    // ¿¿¿
+    // ë°”ì¸ë”©
     if (bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1) {
-        logError("¿¿¿ ¿¿");
+        logError("ë°”ì¸ë”© ì‹¤íŒ¨");
         close(serverSocket);
         return -1;
     }
 
-    // ¿¿ ¿¿ ¿¿
+    // ì†Œì¼“ ì£¼ì†Œ í™•ì¸
     char ipStr[INET_ADDRSTRLEN];
     if (inet_ntop(AF_INET, &serverAddr.sin_addr, ipStr, INET_ADDRSTRLEN) == nullptr) {
-        logError("IP ¿¿ ¿¿");
+        logError("IP í™•ì¸ ì‹¤íŒ¨");
     } else {
-        logInfo("¿¿¿ " + string(ipStr) + ":" + to_string(ntohs(serverAddr.sin_port)) + "¿¿ ¿¿ ¿...");
+        logInfo("ì„œë²„ê°€ " + string(ipStr) + ":" + to_string(ntohs(serverAddr.sin_port)) + "ì—ì„œ ëŒ€ê¸° ì¤‘...");
     }
 
-    // ¿¿¿
+    // ì—°ê²° ëŒ€ê¸° ìˆ˜ë½
     if (listen(serverSocket, backlog) == -1) {
-        logError("¿¿ ¿¿");
+        logError("ì—°ê²° ëŒ€ê¸° ìˆ˜ë½ ì‹¤íŒ¨");
         close(serverSocket);
         return -1;
     }
 
-    logInfo("¿¿¿¿¿ ¿¿ ¿¿ ¿...");
+    logInfo("í´ë¼ì´ì–¸íŠ¸ ì—°ê²° ëŒ€ê¸° ì¤‘...");
 
-    // ¿¿¿¿¿ ¿¿ ¿¿
+    // í´ë¼ì´ì–¸íŠ¸ ì—°ê²° ëŒ€ê¸°
     clientSocket = accept(serverSocket, (struct sockaddr*)&serverAddr, &addrLen);
     if (clientSocket == -1) {
-        logError("¿¿¿¿¿ ¿¿ ¿¿");
+        logError("í´ë¼ì´ì–¸íŠ¸ ì—°ê²° ì‹¤íŒ¨");
         close(serverSocket);
         return -1;
     }
 
-    logInfo("¿¿¿¿¿ ¿¿ ¿¿");
+    logInfo("í´ë¼ì´ì–¸íŠ¸ ì—°ê²° ì™„ë£Œ");
 
-    // ¿¿¿ ¿¿
+    // ë°ì´í„° ìˆ˜ì‹ 
     int receivedBytes = recv(clientSocket, buffer.data(), BUFFER_SIZE, 0);
     if (receivedBytes == -1) {
-        logError("¿¿¿ ¿¿ ¿¿");
+        logError("ë°ì´í„° ìˆ˜ì‹  ì‹¤íŒ¨");
         close(clientSocket);
         close(serverSocket);
         return -1;
     } else if (receivedBytes == 0) {
-        logInfo("¿¿¿¿¿¿ ¿¿¿ ¿¿¿¿¿¿.");
+        logInfo("í´ë¼ì´ì–¸íŠ¸ê°€ ì—°ê²°ì„ ì¢…ë£Œí–ˆìŠµë‹ˆë‹¤.");
         close(clientSocket);
         close(serverSocket);
         return 0;
     }
 
     string receivedData(buffer.begin(), buffer.begin() + receivedBytes);
-    logInfo("¿¿¿ ¿¿¿: " + receivedData);
+    logInfo("ìˆ˜ì‹ ëœ ë°ì´í„°: " + receivedData);
 
-    // ¿¿¿¿¿¿ ¿¿¿ ¿¿
+    // í´ë¼ì´ì–¸íŠ¸ë¡œ ë°ì´í„° ì „ì†¡
     if (send(clientSocket, message.c_str(), message.length(), 0) == -1) {
-        logError("¿¿¿ ¿¿ ¿¿");
+        logError("ë°ì´í„° ì „ì†¡ ì‹¤íŒ¨");
         close(clientSocket);
         close(serverSocket);
         return -1;
     }
 
-    logInfo("¿¿¿ ¿¿ ¿¿");
+    logInfo("ë©”ì‹œì§€ ì „ì†¡ ì™„ë£Œ");
 
-    // ¿¿ ¿¿
+    // ì†Œì¼“ ì¢…ë£Œ
     close(clientSocket);
     close(serverSocket);
 
