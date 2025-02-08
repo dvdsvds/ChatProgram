@@ -1,3 +1,5 @@
+#include <cerrno>
+#include <cstring>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -29,6 +31,7 @@ int main() {
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
     if (serverSocket == -1) {
         logError("서버 소켓 생성 실패");
+        logError(strerror(errno));
         return -1;
     }
 
@@ -40,6 +43,7 @@ int main() {
     // 바인딩
     if (bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1) {
         logError("바인딩 실패");
+        logError(strerror(errno));
         close(serverSocket);
         return -1;
     }
@@ -48,6 +52,7 @@ int main() {
     char ipStr[INET_ADDRSTRLEN];
     if (inet_ntop(AF_INET, &serverAddr.sin_addr, ipStr, INET_ADDRSTRLEN) == nullptr) {
         logError("IP 확인 실패");
+        logError(strerror(errno));
     } else {
         logInfo("서버가 " + string(ipStr) + ":" + to_string(ntohs(serverAddr.sin_port)) + "에서 대기 중...");
     }
@@ -55,6 +60,7 @@ int main() {
     // 연결 대기 수락
     if (listen(serverSocket, backlog) == -1) {
         logError("연결 대기 수락 실패");
+        logError(strerror(errno));
         close(serverSocket);
         return -1;
     }
@@ -65,6 +71,7 @@ int main() {
     clientSocket = accept(serverSocket, (struct sockaddr*)&serverAddr, &addrLen);
     if (clientSocket == -1) {
         logError("클라이언트 연결 실패");
+        logError(strerror(errno));
         close(serverSocket);
         return -1;
     }
@@ -75,6 +82,7 @@ int main() {
     int receivedBytes = recv(clientSocket, buffer.data(), BUFFER_SIZE, 0);
     if (receivedBytes == -1) {
         logError("데이터 수신 실패");
+        logError(strerror(errno));
         close(clientSocket);
         close(serverSocket);
         return -1;
@@ -86,14 +94,14 @@ int main() {
     }
 
     string receivedData(buffer.begin(), buffer.begin() + receivedBytes);
-    logInfo("수신된 데이터: " + receivedData);
+    logInfo("받은 메시지 : " + receivedData);
 
-    // 클라이언트로 데이터 전송
-    if (send(clientSocket, message.c_str(), message.length(), 0) == -1) {
-        logError("데이터 전송 실패");
+    if(send(clientSocket, message.c_str(), message.length(), 0) == -1) {
+        logError("메시지 전송 실패"); 
+        logError(strerror(errno));
+        logError(strerror(errno));
         close(clientSocket);
-        close(serverSocket);
-        return -1;
+        return -1; 
     }
 
     logInfo("메시지 전송 완료");
