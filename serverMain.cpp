@@ -1,125 +1,107 @@
 #include <iostream>
 #include <string>
-#include <WinSock2.h>
-#include <WS2tcpip.h>
 #include <vector>
-
-#pragma comment(lib, "ws2_32")
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
 
 using namespace std;
 
 void logError(const string& errMsg) {
-	cout << "[ERROR] " << errMsg << endl;;
+    cout << "[ERROR] " << errMsg << endl;
 }
+
 void logInfo(const string& infoMsg) {
-	cout << "[INFO] " << infoMsg << endl;;
+    cout << "[INFO] " << infoMsg << endl;
 }
+
 int main() {
-	const int BUFFER_SIZE = 1024;
-	SOCKET serverSocket, clientSocket;
-	sockaddr_in serverAddr;
-	int backlog = 5;
+    const int BUFFER_SIZE = 1024;
+    int serverSocket, clientSocket;
+    struct sockaddr_in serverAddr;
+    socklen_t addrLen = sizeof(serverAddr);
+    int backlog = 5;
 
-	vector<char> buffer(BUFFER_SIZE);
-	string message = "Hello";
-	WSAData wsaData;
+    vector<char> buffer(BUFFER_SIZE);
+    string message = "Hello";
 
-	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-		logError("WSAStartup ÃÊ±âÈ­ ½ÇÆÐ");
-		logError(to_string(WSAGetLastError()));
-		return -1;
-	}
+    // ¿¿ ¿¿ ¿¿
+    serverSocket = socket(AF_INET, SOCK_STREAM, 0);
+    if (serverSocket == -1) {
+        logError("¿¿ ¿¿ ¿¿ ¿¿");
+        return -1;
+    }
 
-	// ¼ÒÄÏ »ý¼º
-	serverSocket = socket(AF_INET, SOCK_STREAM, 0);
-	if(serverSocket == INVALID_SOCKET) {
-		logError("¼ÒÄÏ »ý¼º ½ÇÆÐ");
-		
-		WSACleanup();
-		return -1;
-	}
+    // ¿¿ ¿¿ ¿¿
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_addr.s_addr = INADDR_ANY; // ¿¿ IP ¿¿¿ ¿¿
+    serverAddr.sin_port = htons(12345);
 
-	// ¹ÙÀÎµå
-	serverAddr.sin_family = AF_INET;
-	serverAddr.sin_addr.s_addr = INADDR_ANY; // ¸ðµç IP¿¡¼­ Á¢±Ù Çã¿ë
-	serverAddr.sin_port = htons(12345);
-	
+    // ¿¿¿
+    if (bind(serverSocket, (struct sockaddr*)&serverAddr, sizeof(serverAddr)) == -1) {
+        logError("¿¿¿ ¿¿");
+        close(serverSocket);
+        return -1;
+    }
 
-	if (bind(serverSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
-		logError("¹ÙÀÎµå ½ÇÆÐ");
-		closesocket(serverSocket);
-		WSACleanup();
-		return -1;
-	}
+    // ¿¿ ¿¿ ¿¿
+    char ipStr[INET_ADDRSTRLEN];
+    if (inet_ntop(AF_INET, &serverAddr.sin_addr, ipStr, INET_ADDRSTRLEN) == nullptr) {
+        logError("IP ¿¿ ¿¿");
+    } else {
+        logInfo("¿¿¿ " + string(ipStr) + ":" + to_string(ntohs(serverAddr.sin_port)) + "¿¿ ¿¿ ¿...");
+    }
 
-	sockaddr_in boundAddr;
-	int addrLen = sizeof(boundAddr);
+    // ¿¿¿
+    if (listen(serverSocket, backlog) == -1) {
+        logError("¿¿ ¿¿");
+        close(serverSocket);
+        return -1;
+    }
 
-	if (getsockname(serverSocket, (sockaddr*)&boundAddr, &addrLen) == 0) {
-		char ipStr[INET_ADDRSTRLEN];
-		inet_ntop(AF_INET, &boundAddr.sin_addr, ipStr, INET_ADDRSTRLEN);
-		logInfo("¼­¹ö°¡ " + string(ipStr) + ":" + to_string(ntohs(boundAddr.sin_port)) + "¿¡¼­ ½ÇÇàÁßÀÔ´Ï´Ù.");
-	}
-	else {
-		logError("¼­¹ö IP È®ÀÎ ½ÇÆÐ");
-	}
-	
-	if (listen(serverSocket, backlog) == SOCKET_ERROR) {
-		logError("¿¬°á ´ë±â ½ÇÆÐ");
-		
-		closesocket(serverSocket);
-		WSACleanup();
-		return -1;
-	}
+    logInfo("¿¿¿¿¿ ¿¿ ¿¿ ¿...");
 
-	logInfo("Å¬¶óÀÌ¾ðÆ® ¿¬°á ´ë±â Áß...");
+    // ¿¿¿¿¿ ¿¿ ¿¿
+    clientSocket = accept(serverSocket, (struct sockaddr*)&serverAddr, &addrLen);
+    if (clientSocket == -1) {
+        logError("¿¿¿¿¿ ¿¿ ¿¿");
+        close(serverSocket);
+        return -1;
+    }
 
-	clientSocket = accept(serverSocket, NULL, NULL);
-	if (clientSocket == INVALID_SOCKET) {
-		logError("¿¬°á ¼ö¶ô ½ÇÆÐ");
-		
-		closesocket(serverSocket);
-		WSACleanup();
-		return -1;
-	}
+    logInfo("¿¿¿¿¿ ¿¿ ¿¿");
 
-	logInfo("Å¬¶óÀÌ¾ðÆ® ¿¬°á ¼º°ø");
+    // ¿¿¿ ¿¿
+    int receivedBytes = recv(clientSocket, buffer.data(), BUFFER_SIZE, 0);
+    if (receivedBytes == -1) {
+        logError("¿¿¿ ¿¿ ¿¿");
+        close(clientSocket);
+        close(serverSocket);
+        return -1;
+    } else if (receivedBytes == 0) {
+        logInfo("¿¿¿¿¿¿ ¿¿¿ ¿¿¿¿¿¿.");
+        close(clientSocket);
+        close(serverSocket);
+        return 0;
+    }
 
-	int receivedBytes = recv(clientSocket, buffer.data(), BUFFER_SIZE, 0);
-	if (receivedBytes == SOCKET_ERROR) {
-		logError("µ¥ÀÌÅÍ¸¦ ÀÐÀ» ¼ö ¾ø½À´Ï´Ù.");
-		logError(to_string(WSAGetLastError()));
-		closesocket(clientSocket);
-		closesocket(serverSocket);
-		WSACleanup();
-		return -1;
-	}
-	else if (receivedBytes == 0) {
-		logInfo("Å¬¶óÀÌ¾ðÆ® ¿¬°á Á¾·áµÊ");
-		closesocket(clientSocket);
-		closesocket(serverSocket);
-		WSACleanup();
-		return 0;
-	}
+    string receivedData(buffer.begin(), buffer.begin() + receivedBytes);
+    logInfo("¿¿¿ ¿¿¿: " + receivedData);
 
-	string receivedData(buffer.begin(), buffer.begin() + receivedBytes);
-	logInfo("¹ÞÀº µ¥ÀÌÅÍ" + receivedData);
+    // ¿¿¿¿¿¿ ¿¿¿ ¿¿
+    if (send(clientSocket, message.c_str(), message.length(), 0) == -1) {
+        logError("¿¿¿ ¿¿ ¿¿");
+        close(clientSocket);
+        close(serverSocket);
+        return -1;
+    }
 
-	if (send(clientSocket, message.c_str(), message.length(), 0) == SOCKET_ERROR) {
-		logError("µ¥ÀÌÅÍ¸¦ º¸³¾ ¼ö ¾ø½À´Ï´Ù.");
-		
-		closesocket(clientSocket);
-		closesocket(serverSocket);
-		WSACleanup();
-		return -1;
-	}
+    logInfo("¿¿¿ ¿¿ ¿¿");
 
-	logInfo("¸Þ½ÃÁö Àü¼Û ¼º°ø");
+    // ¿¿ ¿¿
+    close(clientSocket);
+    close(serverSocket);
 
-	
-	closesocket(clientSocket);
-	closesocket(serverSocket);
-	WSACleanup();
-	return 0;
+    return 0;
 }
 
