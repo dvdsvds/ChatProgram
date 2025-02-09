@@ -9,6 +9,8 @@
 #include <unistd.h>
 #include <thread>
 #include <map>
+#include <vector>
+#include <algorithm>
 
 using namespace std;
 
@@ -16,6 +18,7 @@ using namespace std;
 #define MAX_CLIENTS 10
 
 map<int, string> clientNames;
+vector<int> clientSockets;
 
 void logError(const string& errMsg) {
     cout << "[ERROR] " << errMsg << endl;
@@ -25,28 +28,43 @@ void logInfo(const string& infoMsg) {
     cout << "[INFO] " << infoMsg << endl;
 }
 
+void broadcastMsg(const string& message, int senderSocket) {
+    for(int clientSocket : clientSockets) {
+        if(clientSocket != senderSocket) {
+            send(clientSocket, message.c_str(), message.length(), 0);
+        }
+    }
+}
 void handleClient(int clientSocket) {
     const int BUFFER_SIZE = 1024;
     vector<char> buffer(BUFFER_SIZE);
     int receivedBytes;
 
     receivedBytes = recv(clientSocket, buffer.data(), BUFFER_SIZE, 0);
+    string username(buffer.begin(), buffer.begin() + receivedBytes);
     if (receivedBytes > 0) {
-        string username(buffer.begin(), buffer.begin() + receivedBytes);
         clientNames[clientSocket] = username;
+        clientSockets.push_back(clientSocket);
         logInfo(username + "님이 입장하였습니다.");
+        broadcastMsg(username + "님이 입장하였습니다.", clientSocket);
     }
 
     while(true) {
         receivedBytes = recv(clientSocket, buffer.data(), BUFFER_SIZE, 0);
         if (receivedBytes <= 0) {
-            logInfo(clientNames[clientSocket] + "님이 연결을 종료했습니다.");
+            logInfo(username + "님이 연결을 종료했습니다.");
             clientNames.erase(clientSocket);
+            clientSockets.erase(remove(clientSockets.begin(), clientSockets.end(), clientSocket), clientSockets.end());
+            broadcastMsg(username + "님이 연결을 종료했습니다.", clientSocket);
+            close(clientSocket);
             break;
         }
 
         string receivedData(buffer.begin(), buffer.begin() + receivedBytes);
-        cout << clientNames[clientSocket] << " : " + receivedData << endl;
+        string message = clientNames[clientSocket] + " : " + receivedData;
+        cout << message << endl;
+        broadcastMsg(message, clientSocket);
+
     }
 }
 int main() {
