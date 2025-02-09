@@ -8,11 +8,14 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <thread>
+#include <map>
 
 using namespace std;
 
 #define PORT 12345
 #define MAX_CLIENTS 10
+
+map<int, string> clientNames;
 
 void logError(const string& errMsg) {
     cout << "[ERROR] " << errMsg << endl;
@@ -27,15 +30,23 @@ void handleClient(int clientSocket) {
     vector<char> buffer(BUFFER_SIZE);
     int receivedBytes;
 
+    receivedBytes = recv(clientSocket, buffer.data(), BUFFER_SIZE, 0);
+    if (receivedBytes > 0) {
+        string username(buffer.begin(), buffer.begin() + receivedBytes);
+        clientNames[clientSocket] = username;
+        logInfo(username + "님이 입장하였습니다.");
+    }
+
     while(true) {
         receivedBytes = recv(clientSocket, buffer.data(), BUFFER_SIZE, 0);
         if (receivedBytes <= 0) {
-            logInfo("클라이언트가 연결을 종료했습니다.");
+            logInfo(clientNames[clientSocket] + "님이 연결을 종료했습니다.");
+            clientNames.erase(clientSocket);
             break;
         }
 
         string receivedData(buffer.begin(), buffer.begin() + receivedBytes);
-        cout << "클라이언트 : " + receivedData << endl;
+        cout << clientNames[clientSocket] << " : " + receivedData << endl;
     }
 }
 int main() {
@@ -91,7 +102,6 @@ int main() {
             logError(strerror(errno));
             continue;
         }
-        logInfo("클라이언트 연결 완료");
 
         thread clientThread(handleClient, clientSocket);
         clientThread.detach();
