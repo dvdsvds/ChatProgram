@@ -39,10 +39,9 @@ void handleClient(int clientSocket) {
     }
 }
 int main() {
-    int serverSocket, clientSocket;
-    struct sockaddr_in serverAddr;
-    socklen_t addrLen = sizeof(serverAddr);
-    int backlog = 5;
+    int serverSocket;
+    struct sockaddr_in serverAddr, clientAddr;
+    socklen_t addrLen = sizeof(clientAddr);
 
     // 서버 소켓 생성
     serverSocket = socket(AF_INET, SOCK_STREAM, 0);
@@ -75,7 +74,7 @@ int main() {
     }
 
     // 연결 대기 수락
-    if (listen(serverSocket, backlog) == -1) {
+    if (listen(serverSocket, MAX_CLIENTS) == -1) {
         logError("연결 대기 수락 실패");
         logError(strerror(errno));
         close(serverSocket);
@@ -85,18 +84,18 @@ int main() {
     logInfo("클라이언트 연결 대기 중...");
 
     // 클라이언트 연결 대기
-    clientSocket = accept(serverSocket, (struct sockaddr*)&serverAddr, &addrLen);
-    if (clientSocket == -1) {
-        logError("클라이언트 연결 실패");
-        logError(strerror(errno));
-        close(serverSocket);
-        return -1;
+    while (true) {
+        int clientSocket = accept(serverSocket, (struct sockaddr*)&clientAddr, &addrLen);
+        if (clientSocket == -1) {
+            logError("클라이언트 연결 실패");
+            logError(strerror(errno));
+            continue;
+        }
+        logInfo("클라이언트 연결 완료");
+
+        thread clientThread(handleClient, clientSocket);
+        clientThread.detach();
     }
-
-    logInfo("클라이언트 연결 완료");
-
-    thread clientThread(handleClient, clientSocket);
-    clientThread.detach();
 
     // 소켓 종료
     close(serverSocket);
