@@ -29,22 +29,14 @@ void handleClient(int clientSocket) {
 
     while(true) {
         receivedBytes = recv(clientSocket, buffer.data(), BUFFER_SIZE, 0);
-        if (receivedBytes == -1) {
-            logError("데이터 수신 실패");
-            logError(strerror(errno));
-            break;
-        } else if (receivedBytes == 0) {
+        if (receivedBytes <= 0) {
             logInfo("클라이언트가 연결을 종료했습니다.");
             break;
         }
 
         string receivedData(buffer.begin(), buffer.begin() + receivedBytes);
-        cout << "클라이언트 : " + receivedData << endl;;
-
-
+        cout << "클라이언트 : " + receivedData << endl;
     }
-    close(clientSocket);
-
 }
 int main() {
     int serverSocket, clientSocket;
@@ -106,13 +98,6 @@ int main() {
     thread clientThread(handleClient, clientSocket);
     clientThread.detach();
 
-    while(true) {
-        string inputMsg;
-        cout << "> ";
-        getline(cin, inputMsg);
-
-        send(clientSocket, inputMsg.c_str(), inputMsg.size(), 0);
-    }
     // 소켓 종료
     close(serverSocket);
 
